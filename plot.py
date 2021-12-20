@@ -114,7 +114,17 @@ class Axis:
         self.yticks = np.arange(0.2,1.2,.2)        
         self.draw_yticks()
 
-    def plot_curve(self, x, y):
+    def plot_curve(self, x, y,color=(0,255,0)):
+        self.set_scaling_for_curves([[x,y]])
+        self.plot_curve_raw(x,y)
+    
+    def set_scaling_for_curves(self, curves):
+        # each element in curves should be a two-element list (or tuple) - first is x, then y:
+        x = np.zeros(()); y = np.zeros(())
+        for i in curves:
+            x = np.hstack((x,i[0]))
+            y = np.hstack((y,i[1]))
+        #import pdb; pdb.set_trace()
         self.xlim = [min(x), max(x)]
         if (self.xlim[0] == self.xlim[1]):
             self.xlim[0] = min(x) - 1; self.xlim[1] = min(x) + 1
@@ -135,11 +145,15 @@ class Axis:
         self.draw_xticks()
         self.draw_yticks()
         
+    def plot_curve_raw(self,x,y,color=(0,255,0)):    
+        
         assert len(x) == len(y)
         xlast, ylast = self.plot_coords_to_img_coords(x[0],y[0])
         for i in range(0,len(x)-1):
+            if (np.isnan(y[i+1])):
+                continue
             xi, yi = self.plot_coords_to_img_coords(x[i+1],y[i+1]) # TODO - precompute
-            cv2.line(self.img,(xlast,ylast),(xi,yi),(0,255,0),1,cv2.LINE_AA)
+            cv2.line(self.img,(xlast,ylast),(xi,yi),color,1,cv2.LINE_AA)
             xlast, ylast = self.plot_coords_to_img_coords(x[i],y[i])
         
     def clear(self):
