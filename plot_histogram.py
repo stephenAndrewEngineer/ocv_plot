@@ -76,10 +76,6 @@ def plot_histogram(img,y,nBins,rng,is_histogram=False):
         xright = bin_edges[i+1]
         ybottom = 0
         # image space coordinates:
-        #x1 = int(xleft*x_fs + x0)
-        #x2 = int(xright*x_fs + x0)
-        #y1 = int(y0 - y_fs*ytop)
-        #y2 = int(y0 - y_fs*ybottom)
         x1 = int(xleft*A + x0)
         x2 = int(xright*A + x0)
         y1 = int(ytop*B + y0)

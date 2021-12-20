@@ -116,10 +116,20 @@ class Axis:
 
     def plot_curve(self, x, y):
         self.xlim = [min(x), max(x)]
+        if (self.xlim[0] == self.xlim[1]):
+            self.xlim[0] = min(x) - 1; self.xlim[1] = min(x) + 1
+            dx = 2
+        else:
+            dx = max(x) - min(x)
         self.ylim = [min(y), max(y)]
+        if (self.ylim[0] == self.ylim[1]):
+            self.ylim[0] = min(y) - 1; self.ylim[1] = min(y) + 1
+            dy = 2
+        else:
+            dy = max(y) - min(y)
         self.draw_axes()
-        dx = max(x) - min(x)
-        dy = max(y) - min(y)
+        
+        
         self.xticks = np.arange(min(x),max(x),dx/10)
         self.yticks = np.arange(min(y),max(y),dy/10)
         self.draw_xticks()
@@ -133,7 +143,7 @@ class Axis:
             xlast, ylast = self.plot_coords_to_img_coords(x[i],y[i])
         
     def clear(self):
-       self.img = np.zeros((self.imgHeight,self.imgWidth,3),dtype=np.uint8)
+       self.img[:,:,:] = 0
 
 if __name__ == "__main__":
     imSize = (1280,720)
