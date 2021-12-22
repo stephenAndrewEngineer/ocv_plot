@@ -35,7 +35,8 @@ class Axis:
         self.yTickFormat = '%.02f'
         
         self.legend = {'labels':[], 'colors' : [], 'txtWidth' : 0, 'fontFace' : cv2.FONT_HERSHEY_TRIPLEX, 'fontScale' : .45, 'thickness' : 1}
-        
+        self.title = ''
+                
     def draw_axes(self):
         xmin = self.xlim[0] - .02 * (self.xlim[1] - self.xlim[0]) 
         xmax = self.xlim[1] + .02 * (self.xlim[1] - self.xlim[0]) 
@@ -210,8 +211,10 @@ class Axis:
             xi, yi = self.plot_coords_to_img_coords(x[i+1],y[i+1]) # TODO - precompute
             cv2.line(self.img,(xlast,ylast),(xi,yi),color,1,cv2.LINE_AA)
             xlast, ylast = self.plot_coords_to_img_coords(x[i],y[i])
-        
-        # draw legend:
+        self.draw_legend()
+        self.draw_title()
+           
+    def draw_legend(self):
         if len(self.legend['labels']):
             # get size:
             leftPad = 10
@@ -232,7 +235,11 @@ class Axis:
                 cv2.line(self.img, (lineLeft, lineY),(lineRight, lineY), self.legend['colors'][i], 1, cv2.LINE_AA)
                 top += 20
             
-        
+    def draw_title(self):
+        txtPos = self.plot_coords_to_img_coords(.3 * (self.xlim[1]-self.xlim[0]) + self.xlim[0],
+                                                .98 * (self.ylim[1]-self.ylim[0]) + self.ylim[0])
+        cv2.putText(self.img,self.title,txtPos, cv2.FONT_HERSHEY_TRIPLEX, 0.45, (255,255,255),1,cv2.LINE_AA)
+            
     def clear(self):
        self.img[:,:,0] = self.bgColor[0]
        self.img[:,:,1] = self.bgColor[1]
