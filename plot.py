@@ -17,6 +17,8 @@ class Axis:
         self.frameLeft = int(round((xborder/2)*self.imgWidth))
         self.frameTop = int(round((yborder/2)*self.imgHeight))
         
+        self.bgColor = (0,0,0)
+        
         self.xlim = []
         self.ylim = []
         
@@ -64,10 +66,11 @@ class Axis:
             txtHeight += 1
         
         mat = np.zeros((txtHeight,txtWidth,3),dtype=np.uint8)
+        mat[:,:,0] = self.bgColor[0]; mat[:,:,1] = self.bgColor[1]; mat[:,:,2] = self.bgColor[2]
         txtOrg = (0,int(txtHeight/2))
         cv2.putText(mat, self.yLabel, txtOrg, cv2.FONT_HERSHEY_TRIPLEX, 0.45, (255,255,255),1,cv2.LINE_AA)
         newMat = cv2.rotate(mat, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        yLabelOffset = 40 # pixels - label goes this many pixels left of axis
+        yLabelOffset = 42 # pixels - label goes this many pixels left of axis
         
         bottom = int(yHalf + round(txtWidth/2))
         top = int(yHalf - round(txtWidth/2))
@@ -231,7 +234,9 @@ class Axis:
             
         
     def clear(self):
-       self.img[:,:,:] = 0
+       self.img[:,:,0] = self.bgColor[0]
+       self.img[:,:,1] = self.bgColor[1]
+       self.img[:,:,2] = self.bgColor[2]
 
 if __name__ == "__main__":
     imSize = (1280,720)
