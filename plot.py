@@ -3,15 +3,15 @@ import cv2
 import numpy as np
 
 class Axis:
-    def __init__(self,img):
+    def __init__(self,img,xborder=.1,yborder=.1):
         
         # the image is the original cv::mat, which we'll draw into:
         self.img = img
         self.imgWidth = self.img.shape[1]
         self.imgHeight = self.img.shape[0]
         # but we will constrain drawing to a "frame"
-        xborder = .1 # border in x-direction, percentage of total frame width
-        yborder = .1
+        #xborder = .1 # border in x-direction, percentage of total frame width
+        #yborder = .1
         self.frameWidth = int(round((1-xborder)*self.imgWidth))
         self.frameHeight = int(round((1-yborder)*self.imgHeight))
         self.frameLeft = int(round((xborder/2)*self.imgWidth))
@@ -21,12 +21,18 @@ class Axis:
         self.ylim = []
         
         # x and y axes:
-        self.axis_color = (255,255,255)
-        self.axis_thickness = 2
+        self.axisColor = (255,255,255)
+        self.axisThickness = 2
+        self.xLabel = ''
+        self.yLabel = ''
         
         # ticks:
         self.xTickLength = int(.02 * self.imgHeight)
         self.yTickLength = int(.01 * self.imgWidth)
+        self.xTickFormat = '%.02f'
+        self.yTickFormat = '%.02f'
+        
+        self.legend = {'labels':[], 'colors' : [], 'txtWidth' : 0, 'fontFace' : cv2.FONT_HERSHEY_TRIPLEX, 'fontScale' : .45, 'thickness' : 1}
         
     def draw_axes(self):
         xmin = self.xlim[0] - .02 * (self.xlim[1] - self.xlim[0]) 
@@ -36,8 +42,39 @@ class Axis:
         xMin,yMin = self.plot_coords_to_img_coords(xmin,ymin)
         xMax,yMax = self.plot_coords_to_img_coords(xmax,ymax)
         x0, y0 = self.plot_coords_to_img_coords(0,0)
-        cv2.arrowedLine(self.img,(xMin,y0),(xMax,y0), self.axis_color, self.axis_thickness, tipLength=.01) 
-        cv2.arrowedLine(self.img,(x0,yMin),(x0,yMax), self.axis_color, self.axis_thickness, tipLength=.01) 
+        cv2.arrowedLine(self.img,(xMin,y0),(xMax,y0), self.axisColor, self.axisThickness, tipLength=.01) 
+        cv2.arrowedLine(self.img,(x0,yMin),(x0,yMax), self.axisColor, self.axisThickness, tipLength=.01) 
+        # put labels:
+        (xHalf,yHalf) = self.plot_coords_to_img_coords((self.xlim[1] + self.xlim[0])/2, (self.ylim[0] + self.ylim[1])/2)
+        xLabelOffset = 35 # pixels - label goes this many pixels below axis
+        cv2.putText(self.img,self.xLabel,(xHalf,y0+xLabelOffset),cv2.FONT_HERSHEY_TRIPLEX, 0.45, (255,255,255), 1, cv2.LINE_AA)
+        
+        # to render rotated text, we first render it unrotated, then rotate it (obnoxious!)
+        (txtSize,baseline) = cv2.getTextSize(self.yLabel, cv2.FONT_HERSHEY_TRIPLEX, 0.45, 1)
+        if txtSize[0] <= 2:
+            return
+        txtWidth = txtSize[0]
+        txtHeight = 2*txtSize[1] + baseline
+        #txtHeight = txtSize[1]
+        
+        # make both even:
+        if txtWidth % 2:
+            txtWidth += 1
+        if txtHeight % 2:
+            txtHeight += 1
+        
+        mat = np.zeros((txtHeight,txtWidth,3),dtype=np.uint8)
+        txtOrg = (0,int(txtHeight/2))
+        cv2.putText(mat, self.yLabel, txtOrg, cv2.FONT_HERSHEY_TRIPLEX, 0.45, (255,255,255),1,cv2.LINE_AA)
+        newMat = cv2.rotate(mat, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        yLabelOffset = 40 # pixels - label goes this many pixels left of axis
+        
+        bottom = int(yHalf + round(txtWidth/2))
+        top = int(yHalf - round(txtWidth/2))
+        left = int((x0 - yLabelOffset) - round(txtHeight/2))
+        right = int((x0 - yLabelOffset) + round(txtHeight/2))
+        #import pdb; pdb.set_trace()
+        self.img[top:bottom,left:right,:] = newMat # dangerous - do some bounds checking
     
     
     def plot_coords_to_img_coords(self, xp,yp=None):
@@ -63,7 +100,8 @@ class Axis:
         for i in range(0,len(self.yticks)):
             (x,y) = self.plot_coords_to_img_coords(0,self.yticks[i])
             cv2.line(self.img,(x+self.yTickLength,y),(x-self.yTickLength,y),(255,255,255),1)
-            txt = '%.02f' % self.yticks[i]
+            #txt = '%.02f' % self.yticks[i]
+            txt = self.yTickFormat % self.yticks[i]
             cv2.putText(self.img,txt,(x-4*self.yTickLength,y),
             cv2.FONT_HERSHEY_TRIPLEX, 0.5, 
             (0,0,225),1,cv2.LINE_AA)
@@ -72,10 +110,24 @@ class Axis:
         for i in range(0,len(self.xticks)):
             x,y = self.plot_coords_to_img_coords(self.xticks[i],0)
             cv2.line(self.img,(x,y+self.xTickLength),(x,y-self.xTickLength),(255,255,255),1)
-            txt = '%.02f' % self.xticks[i]
+            #txt = '%.02f' % self.xticks[i]
+            txt = self.xTickFormat % self.xticks[i]
             cv2.putText(self.img,txt,(x,y+2*self.xTickLength),
             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (0,0,225),1,cv2.LINE_AA)
     
+    def set_legend(self, *curves):
+        # curves should be label, color, label, color, ...
+        self.legend['labels'] = []
+        self.legend['colors'] = []
+        for i in range(0,len(curves),2):
+            self.legend['labels'].append(curves[i])
+            self.legend['colors'].append(curves[i+1])
+
+        self.legend['txtWidth'] = 0
+        for i in self.legend['labels']:
+            (txtSize, _) = cv2.getTextSize(i,self.legend['fontFace'],self.legend['fontScale'], self.legend['thickness'])
+            self.legend['txtWidth'] = max(self.legend['txtWidth'],txtSize[0])
+            
 
     def plot_histogram(self,y,nBins,rng=None,is_histogram=False):
         # passing rng as not none and is_histogram is False is not a good idea
@@ -155,6 +207,28 @@ class Axis:
             xi, yi = self.plot_coords_to_img_coords(x[i+1],y[i+1]) # TODO - precompute
             cv2.line(self.img,(xlast,ylast),(xi,yi),color,1,cv2.LINE_AA)
             xlast, ylast = self.plot_coords_to_img_coords(x[i],y[i])
+        
+        # draw legend:
+        if len(self.legend['labels']):
+            # get size:
+            leftPad = 10
+            width = self.legend['txtWidth'] + 80
+            height = 30 * len(self.legend['labels'])
+            (right,top) = self.plot_coords_to_img_coords(.98 * (self.xlim[1]-self.xlim[0]) + self.xlim[0], 
+                                                         .98 * (self.ylim[1]-self.ylim[0]) + self.ylim[0])
+            left = right - width
+            bottom = top + height
+            # draw a box:
+            cv2.rectangle(self.img, (int(left),int(top)), (int(right), int(bottom)), (255,255,255), 1)
+            for i in range(0,len(self.legend['labels'])):
+                cv2.putText(self.img, self.legend['labels'][i],(int(left+leftPad), int(top+20)),self.legend['fontFace'],self.legend['fontScale'],
+                (255,255,255), self.legend['thickness'],cv2.LINE_AA)
+                lineLeft = int(left+leftPad + self.legend['txtWidth'] + 10)
+                lineRight = int(lineLeft + 20)
+                lineY = int(top+15)
+                cv2.line(self.img, (lineLeft, lineY),(lineRight, lineY), self.legend['colors'][i], 1, cv2.LINE_AA)
+                top += 20
+            
         
     def clear(self):
        self.img[:,:,:] = 0
